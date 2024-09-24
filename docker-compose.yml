@@ -1,28 +1,26 @@
-version: '3'
 services:
   nifi:
     image: apache/nifi:2.0.0-M4
+    ports:
+      - 8443:8443
     restart: unless-stopped
+    volumes:
+      - ./vastdb_nifi-1.0.2-linux-x86_64-py39.nar:/opt/nifi/nifi-current/nar_extensions/
+    environment:
+      NIFI_WEB_PROXY_HOST: localhost:8080, vastdb-ingest:8080
+      SINGLE_USER_CREDENTIALS_USERNAME: admin
+      SINGLE_USER_CREDENTIALS_PASSWORD: 123456123456
+
+  traefik:
+    image: traefik:v3.1
     ports:
       - 8080:8080
     volumes:
-      - ./certs:/opt/certs
-      - ./vastdb_nifi-1.0.2-linux-x86_64-py39.nar:/opt/nifi/nifi-current/nar_extensions/
-    environment:
-      NIFI_WEB_PROXY_HOST: vastdb-ingest
-      SINGLE_USER_CREDENTIALS_USERNAME: admin
-      SINGLE_USER_CREDENTIALS_PASSWORD: 123456123456
- 
-  traefik:
-    image: traefik:latest
-    ports:
-      - 8443:8443
-    volumes:
       - ./traefik.yml:/etc/traefik/traefik.yml:ro
-      - /var/run/docker.sock:/var/run/docker.sock  # Add the Docker socket for Traefik to communicate with Docker
-    command:
-      - --providers.docker  # Enable Docker provider for Traefik
-      - --entrypoints.websecure.address=:8443  # Specify the entry point for HTTPS
+      - /var/run/docker.sock:/var/run/docker.sock
+        #command:
+        #  - --providers.docker
+        #  - --entrypoints.web.address=:8080
     restart: unless-stopped
     depends_on:
       - nifi

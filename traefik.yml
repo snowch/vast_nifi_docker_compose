@@ -2,22 +2,27 @@ http:
   routers:
     nifi:
       entrypoints:
-        - websecure
-      rule:
-        Host: vastdb-ingest
+        - web
+      rule: "Host(`vastdb-ingest`, `localhost`)"
       service: nifi
       middlewares:
-        - addforwardheaders@never
+        - addforwardheaders
+
+  services:
+    nifi:
+      loadbalancer:
+        servers:
+          - url: "https://nifi-vast-nifi-docker-compose:8443"
 
   middlewares:
     addforwardheaders:
       headers:
         X-Forwarded-Host:
-          - expr: replace(http.host, '^.*$', '$1')  # Replace host header
+          - expr: "localhost"
         X-Forwarded-Port:
-          - expr: replace(http.port, '^.*$', '$1')  # Replace port header
+          - expr: "8443"
         X-Forwarded-Proto:
-          - expr: replace(http.scheme, '^.*$', '$1')  # Replace scheme header
+          - expr: "https"
 
 tls:
   stores:
@@ -27,4 +32,16 @@ tls:
         keyFile: ""
 
 log:
-  filePath: "./traefik.log"
+  level: DEBUG
+
+accessLog:
+  filePath: "/var/log/access.log"
+
+entryPoints:
+  web:
+    address: ":8080"
+
+providers:
+  docker:
+    useBindPortIP: true
+
