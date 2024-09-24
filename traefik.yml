@@ -4,7 +4,7 @@ http:
       entrypoints:
         - websecure
       rule:
-        Host: your-nifi-domain.com  # Replace with your domain
+        Host: vastdb-ingest
       service: nifi
       middlewares:
         - addforwardheaders@never
@@ -20,11 +20,11 @@ http:
           - expr: replace(http.scheme, '^.*$', '$1')  # Replace scheme header
 
 tls:
-  certificates:
-    - certFile: /etc/ssl/cert.pem  # Replace with your SSL certificate path
-      keyFile: /etc/ssl/key.pem   # Replace with your SSL key path
-      stores:
-        - websecure
   stores:
-    websecure:
-      minVersion: TLSv1.2
+    default:
+      defaultCertificate:
+        certFile: ""
+        keyFile: ""
+
+log:
+  filePath: "./traefik.log"
