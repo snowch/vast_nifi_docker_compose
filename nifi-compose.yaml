@@ -1,0 +1,25 @@
+version: '3'
+services:
+  nifi:
+    image: apache/nifi:2.0.0-M4
+    restart: unless-stopped
+    ports:
+      - 8443:8443
+    volumes:
+      - ./certs:/opt/certs
+      - ./vastdb_nifi-1.0.2-linux-x86_64-py39.nar:/opt/nifi/nifi-current/nar_extensions/vastdb_nifi-1.0.2-linux-x86_64-py39.nar
+    environment:
+      SINGLE_USER_CREDENTIALS_USERNAME: admin
+      SINGLE_USER_CREDENTIALS_PASSWORD: 123456123456
+ 
+  traefik:
+    image: traefik:latest
+    ports:
+      - 8443:8443
+    volumes:
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+    command:
+      - --docker
+    restart: unless-stopped
+    depends_on:
+      - nifi
