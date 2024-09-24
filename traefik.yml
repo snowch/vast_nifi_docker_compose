@@ -1,0 +1,30 @@
+http:
+  routers:
+    nifi:
+      entrypoints:
+        - websecure
+      rule:
+        Host: your-nifi-domain.com  # Replace with your domain
+      service: nifi
+      middlewares:
+        - addforwardheaders@never
+
+  middlewares:
+    addforwardheaders:
+      headers:
+        X-Forwarded-Host:
+          - expr: replace(http.host, '^.*$', '$1')  # Replace host header
+        X-Forwarded-Port:
+          - expr: replace(http.port, '^.*$', '$1')  # Replace port header
+        X-Forwarded-Proto:
+          - expr: replace(http.scheme, '^.*$', '$1')  # Replace scheme header
+
+tls:
+  certificates:
+    - certFile: /etc/ssl/cert.pem  # Replace with your SSL certificate path
+      keyFile: /etc/ssl/key.pem   # Replace with your SSL key path
+      stores:
+        - websecure
+  stores:
+    websecure:
+      minVersion: TLSv1.2
