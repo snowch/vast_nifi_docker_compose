@@ -2,25 +2,42 @@ services:
   nifi:
     image: apache/nifi:2.0.0-M4
     ports:
-      - 8443:8443
+      - "8443:8443"
     restart: unless-stopped
     volumes:
       - ./vastdb_nifi-1.0.2-linux-x86_64-py39.nar:/opt/nifi/nifi-current/nar_extensions/
+    uts: host
     environment:
-      NIFI_WEB_PROXY_HOST: localhost:8080, vastdb-ingest:8080
+      NIFI_WEB_PROXY_HOST: localhost:80, vastdb-ingest:80
+      NIFI_WEB_HTTPS_HOST: vastdb-ingest
       SINGLE_USER_CREDENTIALS_USERNAME: admin
       SINGLE_USER_CREDENTIALS_PASSWORD: 123456123456
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.traefik-http.entrypoints=web
+      - traefik.http.routers.traefik-http.rule=Host(`vastdb-ingest`)
+      - traefik.http.services.my-service.loadbalancer.server.scheme=https
+      - traefik.http.services.my-service.loadbalancer.server.port=8443
+      - traefik.http.services.my-service.loadbalancer.passhostheader=false
+        #- traefik.http.middlewares.my-middleware.headers.customrequestheaders.Host=localhost
+        #- traefik.http.middlewares.myHeader.headers.customrequestheaders.X-Forwarded-Host=localhost
 
   traefik:
     image: traefik:v3.1
     ports:
-      - 8080:8080
+      - "80:80"
+      - "8080:8080"
     volumes:
-      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      #- ./traefik.yml:/etc/traefik/traefik.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock
-        #command:
-        #  - --providers.docker
-        #  - --entrypoints.web.address=:8080
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.web.address=:80"
+      - "--serverstransport.insecureskipverify=true"
     restart: unless-stopped
     depends_on:
       - nifi
