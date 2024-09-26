@@ -1,4 +1,4 @@
-# Vast DB Nifi 2.x Single Node using Docker Compose
+# Vast DB Nifi 2.x using Docker Compose
 
 ## Overview
 
@@ -41,6 +41,7 @@ Open the URL https://your_host/nifi
 - Username: admin
 - Password: 123456123456
 
-## TODO
+## Notes
 
 - Only tested on Linux AMD64 server hosts
+- Only deploys a single NiFi node
