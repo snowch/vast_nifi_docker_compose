@@ -28,14 +28,13 @@ NiFi 2.0.0-M5 fixes a [bug](https://issues.apache.org/jira/browse/NIFI-13680) th
 ## Instructions
 
 ```
-ssh your_host
+ssh your_server_host
 
 git clone https://github.com/snowch/vast_nifi_docker_compose.git
 cd vast_nifi_docker_compose
 
-# edit the line
-# - traefik.http.routers.traefik-https.rule=Host(`vastdb-ingest`)
-# replace vastdb-ingest with the hostname for the server host
+# set this to your server host name
+export EXT_HOST_NAME=your_server_host
 
 docker compose up
 ```
