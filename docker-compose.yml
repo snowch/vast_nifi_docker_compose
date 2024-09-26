@@ -1,11 +1,12 @@
 services:
   nifi:
     image: apache/nifi:2.0.0-M4
+    platform: linux/amd64
     ports:
       - "8443:8443"
-    restart: no
+    restart: unless-stopped
     volumes:
-      - ./nar/vastdb_nifi-linux-x86_64-py39.nar:/opt/nifi/nifi-current/nar_extensions/
+      - ${PWD}/nar/vastdb_nifi-linux-x86_64-py39.nar:/opt/nifi/nifi-current/nar_extensions/vastdb_nifi-linux-x86_64-py39.nar
     uts: host
     environment:
       NIFI_WEB_PROXY_HOST: localhost:9443
@@ -22,6 +23,7 @@ services:
 
   traefik:
     image: traefik:v3.1
+    platform: linux/amd64
     ports:
       - "443:443"
       - "8080:8080"
@@ -36,24 +38,25 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.websecure.http.tls=true"
       - "--serverstransport.insecureskipverify=true"
-    restart: no
+    restart: unless-stopped
     depends_on:
       - nifi
 
   download_vastdb_nar:
     image: debian:bullseye-slim
+    platform: linux/amd64
     volumes:
       - ./nar:/data
     entrypoint: >
       bash -c '
-      apt-get update && apt-get install -y curl jq &&
+      apt-get update -qq && apt-get install -y curl -qq jq &&
       echo "Fetching latest release..." &&
       LATEST_RELEASE=$$(curl -s https://api.github.com/repos/vast-data/vastdb_nifi/releases/latest | jq -r .tag_name | sed "s/^v//") &&
       echo "Latest release is: $$LATEST_RELEASE" &&
       if [ -n "$$LATEST_RELEASE" ]; then
         echo "Downloading NAR file..." &&
         curl -L -o /data/vastdb_nifi-$$LATEST_RELEASE-linux-x86_64-py39.nar https://github.com/vast-data/vastdb_nifi/releases/download/v$$LATEST_RELEASE/vastdb_nifi-$$LATEST_RELEASE-linux-x86_64-py39.nar &&
-        ln -s vastdb_nifi-linux-x86_64-py39.nar vastdb_nifi-$$LATEST_RELEASE-linux-x86_64-py39.nar
+        ln -f /data/vastdb_nifi-$$LATEST_RELEASE-linux-x86_64-py39.nar /data/vastdb_nifi-linux-x86_64-py39.nar &&
         echo "Successfully downloaded NAR file to local folder ./nar"
       else
         echo "Failed to fetch latest release. Exiting." &&
