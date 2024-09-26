@@ -39,7 +39,7 @@ export EXT_HOST_NAME=your_server_host
 docker compose up
 ```
 
-Open the URL https://your_host/nifi
+Open the URL https://your_server_host/nifi
 
 - Username: admin
 - Password: 123456123456
