@@ -3,32 +3,29 @@ services:
     image: apache/nifi:2.0.0-M4
     ports:
       - "8443:8443"
-    restart: unless-stopped
+    restart: no
     volumes:
-      - ./vastdb_nifi-1.0.2-linux-x86_64-py39.nar:/opt/nifi/nifi-current/nar_extensions/
+      - ./nar/vastdb_nifi-linux-x86_64-py39.nar:/opt/nifi/nifi-current/nar_extensions/
     uts: host
     environment:
-      NIFI_WEB_PROXY_HOST: localhost:80, vastdb-ingest:80
-      NIFI_WEB_HTTPS_HOST: vastdb-ingest
+      NIFI_WEB_PROXY_HOST: localhost:9443
       SINGLE_USER_CREDENTIALS_USERNAME: admin
       SINGLE_USER_CREDENTIALS_PASSWORD: 123456123456
+    depends_on:
+      - download_vastdb_nar
     labels:
       - traefik.enable=true
-      - traefik.http.routers.traefik-http.entrypoints=web
-      - traefik.http.routers.traefik-http.rule=Host(`vastdb-ingest`)
+      - traefik.http.routers.traefik-https.entrypoints=websecure
+      - traefik.http.routers.traefik-https.rule=Host(`vastdb-ingest`)
       - traefik.http.services.my-service.loadbalancer.server.scheme=https
       - traefik.http.services.my-service.loadbalancer.server.port=8443
-      - traefik.http.services.my-service.loadbalancer.passhostheader=false
-        #- traefik.http.middlewares.my-middleware.headers.customrequestheaders.Host=localhost
-        #- traefik.http.middlewares.myHeader.headers.customrequestheaders.X-Forwarded-Host=localhost
 
   traefik:
     image: traefik:v3.1
     ports:
-      - "80:80"
+      - "443:443"
       - "8080:8080"
     volumes:
-      #- ./traefik.yml:/etc/traefik/traefik.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "--log.level=DEBUG"
@@ -36,8 +33,30 @@ services:
       - "--api.dashboard=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--entryPoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http.tls=true"
       - "--serverstransport.insecureskipverify=true"
-    restart: unless-stopped
+    restart: no
     depends_on:
       - nifi
+
+  download_vastdb_nar:
+    image: debian:bullseye-slim
+    volumes:
+      - ./nar:/data
+    entrypoint: >
+      bash -c '
+      apt-get update && apt-get install -y curl jq &&
+      echo "Fetching latest release..." &&
+      LATEST_RELEASE=$$(curl -s https://api.github.com/repos/vast-data/vastdb_nifi/releases/latest | jq -r .tag_name | sed "s/^v//") &&
+      echo "Latest release is: $$LATEST_RELEASE" &&
+      if [ -n "$$LATEST_RELEASE" ]; then
+        echo "Downloading NAR file..." &&
+        curl -L -o /data/vastdb_nifi-$$LATEST_RELEASE-linux-x86_64-py39.nar https://github.com/vast-data/vastdb_nifi/releases/download/v$$LATEST_RELEASE/vastdb_nifi-$$LATEST_RELEASE-linux-x86_64-py39.nar &&
+        ln -s vastdb_nifi-linux-x86_64-py39.nar vastdb_nifi-$$LATEST_RELEASE-linux-x86_64-py39.nar
+        echo "Successfully downloaded NAR file to local folder ./nar"
+      else
+        echo "Failed to fetch latest release. Exiting." &&
+        exit 1
+      fi
+      '
