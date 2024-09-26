@@ -33,6 +33,10 @@ ssh your_host
 git clone https://github.com/snowch/vast_nifi_docker_compose.git
 cd vast_nifi_docker_compose
 
+# edit the line
+# - traefik.http.routers.traefik-https.rule=Host(`vastdb-ingest`)
+# replace vastdb-ingest with the hostname for the server host
+
 docker compose up
 ```
 
